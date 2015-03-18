@@ -17,24 +17,18 @@ package net.wasdev.wlp.gradle.plugins
 
 import org.gradle.api.*
 
-import com.ibm.wsspi.kernel.embeddable.Server
+
 import com.ibm.wsspi.kernel.embeddable.ServerBuilder
 import com.ibm.wsspi.kernel.embeddable.Server.Result
-import com.ibm.wsspi.kernel.embeddable.ServerEventListener
-import com.ibm.wsspi.kernel.embeddable.ServerEventListener.ServerEvent
 import com.ibm.wsspi.kernel.embeddable.ServerEventListener.ServerEvent.Type
-
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.LinkedBlockingQueue
-
 import org.gradle.api.logging.LogLevel
+import net.wasdev.wlp.gradle.plugins.tasks.AbstractTask
 
-class Liberty implements Plugin<Project> {
+class Liberty extends AbstractTask implements Plugin<Project> {
 
     void apply(Project project) {
 
-        project.plugins.apply 'war'
-
+        
         project.extensions.create('liberty', LibertyExtension)
 
         project.task('libertyRun') {
@@ -98,8 +92,7 @@ class Liberty implements Plugin<Project> {
                 }
             }
         }
-        project.tasks.clean.dependsOn project.tasks.libertyStop
-
+        
         project.task('libertyPackage') {
             description 'Generates a WebSphere Liberty Profile server archive.'
             logging.level = LogLevel.INFO
@@ -110,29 +103,59 @@ class Liberty implements Plugin<Project> {
             }
         }
 
-        project.task('deployWar') {
+        project.task('deploy') {
             description 'Deploys a WAR file to the WebSphere Liberty Profile server.'
             logging.level = LogLevel.INFO
             doLast {
                 def params = buildLibertyMap(project);
-                params.put('file', project.war.archivePath)
                 project.ant.taskdef(name: 'deploy', 
                                     classname: 'net.wasdev.wlp.ant.DeployTask', 
                                     classpath: project.buildscript.configurations.classpath.asPath)
-                project.ant.deploy(params)
+                                    
+                if (project.liberty.file != null) {
+                    params.put('file', project.liberty.file)
+                    project.ant.deploy(params)
+                } else {
+                    String fsDir = project.liberty.fileSet.getDir()
+                    if (fsDir != null) {
+                        String includedPatterns = includedPatterns(project, project.liberty.fileSet) == null ? "" : includedPatterns(project, project.liberty.fileSet)
+                        String excludedPatterns = excludedPatterns(project, project.liberty.fileSet) == null ? "" : excludedPatterns(project, project.liberty.fileSet)
+
+                        project.ant.deploy(params) {
+                            fileset(dir:fsDir, includes:includedPatterns, excludes:excludedPatterns)
+                        }
+                    } else {
+                        project.ant.deploy(params)
+                    }
+                }
             }
         }
 
-        project.task('undeployWar') {
+        project.task('undeploy') {
             description 'Removes a WAR file from the WebSphere Liberty Profile server.'
             logging.level = LogLevel.INFO
             doLast {
                 def params = buildLibertyMap(project)
-                params.put('file', project.war.archivePath.name)
                 project.ant.taskdef(name: 'undeploy', 
                                     classname: 'net.wasdev.wlp.ant.UndeployTask', 
                                     classpath: project.buildscript.configurations.classpath.asPath)
-                project.ant.undeploy(params)
+                
+                if (project.liberty.file != null) {
+                    params.put('file', project.liberty.file)
+                    project.ant.undeploy(params)
+                } else {
+                    String includedPatterns = includedPatterns(project, project.liberty.patternSet)
+                    String excludedPatterns = excludedPatterns(project, project.liberty.patternSet)
+                    
+                    project.ant.undeploy(params) {
+                        if (includedPatterns != null) {
+                            patternset(includes:includedPatterns)
+                        }
+                        if (excludedPatterns != null) {
+                            patternset(excludes:excludedPatterns)
+                        }
+                    }
+                }
             }
         }
         
@@ -156,60 +179,7 @@ class Liberty implements Plugin<Project> {
         }
     }
 
-    private void executeServerCommand(Project project, String command, Map<String, String> params) {
-        project.ant.taskdef(name: 'server', 
-                            classname: 'net.wasdev.wlp.ant.ServerTask', 
-                            classpath: project.buildscript.configurations.classpath.asPath)
-        params.put('operation', command)
-        project.ant.server(params)
-    }
 
-    private ServerBuilder getServerBuilder(Project project) {
-        ServerBuilder sb = new ServerBuilder()
-        sb.setName(project.liberty.serverName)
-        sb.setUserDir(getUserDir(project))
-        if (project.liberty.outputDir != null) {
-            sb.setOutputDir(new File(project.liberty.outputDir))
-        }
-        return sb
-    }
-
-
-    private Map<String, String> buildLibertyMap(Project project) {
-
-        Map<String, String> result = new HashMap();
-        result.put('serverName', project.liberty.serverName)
-        def libertyUserDirFile = getUserDir(project)
-        if (!libertyUserDirFile.isDirectory()) {
-            libertyUserDirFile.mkdirs()
-        }
-        result.put('userDir', libertyUserDirFile)
-        result.put('installDir', project.liberty.wlpDir)
-        if (project.liberty.outputDir != null) {
-            result.put('outputDir', project.liberty.outputDir)
-        }          
-        result.put('timeout', 300000)
-
-        return result;
-    }
-    
-    private File getUserDir(Project project) {
-        return (project.liberty.userDir == null) ? new File(project.buildDir, 'wlp') : new File(project.liberty.userDir)
-    }
-
-    private static class LibertyListener implements ServerEventListener {
-
-        private BlockingQueue<ServerEvent> queue = new LinkedBlockingQueue<ServerEvent>()
-
-        void serverEvent(ServerEvent event) {
-            queue.put(event)
-        }
-
-        ServerEvent next() {
-            return queue.take()
-        }
-
-    }
 
 
 }

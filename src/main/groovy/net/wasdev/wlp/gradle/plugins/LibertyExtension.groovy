@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package net.wasdev.wlp.gradle.plugins
+import org.apache.tools.ant.types.PatternSet
+import org.apache.tools.ant.types.FileSet
 
 class LibertyExtension {
 
@@ -21,6 +23,10 @@ class LibertyExtension {
     String outputDir
     String userDir
     String serverName = "defaultServer"
+    
+    String file
+    PatternSet patternSet = new PatternSet()
+    FileSet fileSet = new FileSet()
     
     String featureName
     boolean acceptLicense = false
