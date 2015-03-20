@@ -26,6 +26,8 @@ class LibertyExtension {
     
     FeatureExtension features = new FeatureExtension()
     InstallExtension install = new InstallExtension()
+    DeployExtension deploy = new DeployExtension()
+    UndeployExtension undeploy = new UndeployExtension()
 
     def features(Closure closure) {
         ConfigureUtil.configure(closure, features)
@@ -33,5 +35,13 @@ class LibertyExtension {
 
     def install(Closure closure) {
         ConfigureUtil.configure(closure, install)
+    }
+    
+    def deploy(Closure closure) {
+        ConfigureUtil.configure(closure, deploy)
+    }
+    
+    def undeploy(Closure closure) {
+        ConfigureUtil.configure(closure, undeploy)
     }
 }
