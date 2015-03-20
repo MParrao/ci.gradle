@@ -1,5 +1,5 @@
 /**
- * (C) Copyright IBM Corporation 2014.
+ * (C) Copyright IBM Corporation 2014, 2015.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,11 @@ class Liberty implements Plugin<Project> {
             outputs.file { new File(getUserDir(project), "servers/${project.liberty.serverName}/server.xml") }
             logging.level = LogLevel.INFO
             doLast {
-                executeServerCommand(project, 'create', buildLibertyMap(project))
+                def params = buildLibertyMap(project);
+                if (project.liberty.template != null && project.liberty.template.length() != 0) {
+                    params.put('template', project.liberty.template)
+                }
+                executeServerCommand(project, 'create', params)
             }
         }
 
@@ -77,8 +81,11 @@ class Liberty implements Plugin<Project> {
             description 'Starts the WebSphere Liberty Profile server.'
             logging.level = LogLevel.INFO
             doLast {
+                def params = buildLibertyMap(project);
                 try {
-                    executeServerCommand(project, 'start', buildLibertyMap(project))
+                    params.put('clean', project.liberty.clean)
+                    params.put('timeout', project.liberty.timeout)
+                    executeServerCommand(project, 'start', params)
                 } catch (Exception e) {
                     // Throws an exception if the server is already started
                     println e
@@ -105,8 +112,48 @@ class Liberty implements Plugin<Project> {
             logging.level = LogLevel.INFO
             doLast {
                 def params = buildLibertyMap(project);
-                params.put('archive', new File(project.buildDir, project.liberty.serverName + '.zip'))
+                if (project.liberty.archive != null && project.liberty.archive.length() != 0) {
+                    params.put('archive', new File(project.liberty.archive))
+                }
+                if (project.liberty.include != null && project.liberty.include.length() != 0) {
+                    params.put('include',project.liberty.include)
+                }
                 executeServerCommand(project, 'package', params)
+            }
+        }
+
+        project.task('libertyDump') {
+            description 'Dump diagnostic information from the Liberty Profile server into an archive.'
+            logging.level = LogLevel.INFO
+            doLast {
+                def params = buildLibertyMap(project);
+                if (project.liberty.archive != null && project.liberty.archive.length() != 0) {
+                    params.put('archive', new File(project.liberty.archive))
+                }
+                if (project.liberty.include != null && project.liberty.include.length() != 0) {
+                    params.put('include',project.liberty.include)
+                }
+                executeServerCommand(project, 'dump', params)
+            }
+        }
+
+        project.task('libertyJavaDump') {
+            description 'Dump diagnostic information from the Liberty Profile server JVM.'
+            logging.level = LogLevel.INFO
+            doLast {
+                def params = buildLibertyMap(project);
+                if (project.liberty.include != null && project.liberty.include.length() != 0) {
+                    params.put('include',project.liberty.include)
+                }
+                executeServerCommand(project, 'javadump', params)
+            }
+        }
+
+        project.task('libertyDebug') {
+            description 'Run the Liberty Profile server in the console foreground after a debugger connects to the debug port (default: 7777).'
+            logging.level = LogLevel.INFO
+            doLast {
+                executeServerCommand(project, 'debug', buildLibertyMap(project))
             }
         }
 
@@ -115,6 +162,7 @@ class Liberty implements Plugin<Project> {
             logging.level = LogLevel.INFO
             doLast {
                 def params = buildLibertyMap(project);
+                params.put('timeout', project.liberty.timeout)
                 params.put('file', project.war.archivePath)
                 project.ant.taskdef(name: 'deploy', 
                                     classname: 'net.wasdev.wlp.ant.DeployTask', 
@@ -128,6 +176,7 @@ class Liberty implements Plugin<Project> {
             logging.level = LogLevel.INFO
             doLast {
                 def params = buildLibertyMap(project)
+                params.put('timeout', project.liberty.timeout)
                 params.put('file', project.war.archivePath.name)
                 project.ant.taskdef(name: 'undeploy', 
                                     classname: 'net.wasdev.wlp.ant.UndeployTask', 
@@ -188,13 +237,13 @@ class Liberty implements Plugin<Project> {
         if (project.liberty.outputDir != null) {
             result.put('outputDir', project.liberty.outputDir)
         }          
-        result.put('timeout', 300000)
 
         return result;
     }
     
     private File getUserDir(Project project) {
-        return (project.liberty.userDir == null) ? new File(project.buildDir, 'wlp') : new File(project.liberty.userDir)
+        String wlpDir = project.liberty.wlpDir == null ? "" : project.liberty.wlpDir
+        return (project.liberty.userDir == null) ? new File(wlpDir, 'usr') : new File(project.liberty.userDir)
     }
 
     private static class LibertyListener implements ServerEventListener {

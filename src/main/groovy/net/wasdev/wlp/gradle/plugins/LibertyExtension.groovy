@@ -1,5 +1,5 @@
 /**
- * (C) Copyright IBM Corporation 2014.
+ * (C) Copyright IBM Corporation 2014, 2015.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,11 @@ class LibertyExtension {
     String outputDir
     String userDir
     String serverName = "defaultServer"
+    String include
+    String archive
+    boolean clean = false
+    String timeout = "300000"
+    String template
     
     String featureName
     boolean acceptLicense = false

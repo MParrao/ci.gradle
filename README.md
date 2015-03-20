@@ -89,15 +89,18 @@ apply plugin: 'liberty'
 The plugin will have made the following tasks available to your project:
 
 | Task | Description |
-| --------- | ------------ |
+| --------- | ------------ | 
 | libertyCreate | Creates a WebSphere Liberty Profile server. |
-| libertyStart | Starts the WebSphere Liberty Profile server. |
-| libertyStop | Stops the WebSphere Liberty Profile server. |
-| libertyRun | Runs a WebSphere Liberty Profile server under the Gradle process. |
+| libertyStart | Starts the WebSphere Liberty Profile server. | 
+| libertyRun | Runs a WebSphere Liberty Profile server under the Gradle process. | 
+| libertyStop | Stops the WebSphere Liberty Profile server. | 
 | libertyStatus | Checks the WebSphere Liberty Profile server is running. |
-| libertyPackage | Generates a WebSphere Liberty Profile server archive. |
+| libertyPackage | Generates a WebSphere Liberty Profile server archive. | 
+| libertyDump | Dump diagnostic information from the Liberty Profile server into an archive. | 
+| libertyJavaDump | Dump diagnostic information from the Liberty Profile server JVM. | 
+| libertyDebug | Run the Liberty Profile server in the console foreground after a debugger connects to the debug port (default: 7777). | 
 | deployWar | Deploys a WAR file to the WebSphere Liberty Profile server. |
-| undeployWar | Removes a WAR file from the WebSphere Liberty Profile server. |
+| undeployWar | Removes a WAR file from the WebSphere Liberty Profile server. | 
 | installFeature | Installs a new feature in the WebSphere Liberty Profile server. |
 
 ###Extension properties
@@ -113,6 +116,15 @@ These properties are divided in two groups, the general properties (Which need t
 | userDir | Value of the `${wlp_user_dir}` variable. The default value is `${installDir}/usr/`. | No |
 | serverName |Name of the Liberty profile server instance. The default value is `defaultServer`. | No |
 
+#### Server Properties
+
+| Attribute | Description | Required |
+| --------- | ------------ | ----------|
+| clean | Clean all cached information on server start up. The default value is `false`. Only used with the `libertyStart` task. | No | 
+| timeout | Waiting time before the server starts. The default value is 30 seconds. The unit is milliseconds. Only used with the `libertyStart` task. | No | 
+| include | A comma-delimited list of values. The valid values vary depending on the task. For the `libertyPackage` task the valid values are `all`, `usr`, and `minify`. For the `libertyDump` task the valid values are `heap`, `system`, and `thread`. For the `libertyJavaDump` task the valid values are `heap` and `system`. | No. |
+| archive | Location of the target archive file. Only used with the `libertyPackage` or `libertyDump` tasks. | No |
+| template | Name of the template to use when creating a new server. Only used with the `libertyCreate` task. | No |
 This example shows you how to configure this properties in your script:
 ```
 apply plugin: 'liberty'
@@ -136,6 +148,7 @@ Of the plugin configuration, only the `wlpDir` property is required. The default
 | whenFileExists | Specifies the action to take if a file to be installed already exits. Use `fail` to abort the installation, `ignore` to continue the installation and ignore the file that exists, and `replace` to overwrite the existing file.| No |
 | to | Specifies feature installation location. Set to `usr` to install as a user feature. Otherwise, set it to any configured product extension location. The default value is `usr`.| No |
 
+
 The following example shows what properties must be set up to install the [`mongodb-2.0`](https://developer.ibm.com/wasdev/downloads/#asset/features-com.ibm.websphere.appserver.mongodb-2.0) feature to your server:
 
 ```
@@ -148,3 +161,6 @@ liberty {
 	acceptLicense = true
 }
 ```
+
+
+
