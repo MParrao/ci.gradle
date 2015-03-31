@@ -23,12 +23,15 @@ class LibertyExtension {
     String outputDir
     String userDir
     String serverName = "defaultServer"
-    
+
+    def numberOfClosures = 0    
+
     FeatureExtension features = new FeatureExtension()
     InstallExtension install = new InstallExtension()
     DeployExtension deploy = new DeployExtension()
     UndeployExtension undeploy = new UndeployExtension()
-
+    
+    
     def features(Closure closure) {
         ConfigureUtil.configure(closure, features)
     }
@@ -36,9 +39,14 @@ class LibertyExtension {
     def install(Closure closure) {
         ConfigureUtil.configure(closure, install)
     }
-    
+
     def deploy(Closure closure) {
+        if (numberOfClosures > 0){
+            deploy.listOfClosures.add(deploy.clone())
+            deploy.file = null
+        }
         ConfigureUtil.configure(closure, deploy)
+        numberOfClosures++
     }
     
     def undeploy(Closure closure) {
